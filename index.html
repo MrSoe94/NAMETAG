@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembuat Kartu Departemen</title>
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- html2canvas Library for Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* ============================================
+           CSS CUSTOM PROPERTIES (VARIABLES)
+           ============================================ */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --light-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-width: 400px;
+            --card-height: 600px;
+            --border-radius: 20px;
+            --shadow: 0 20px 60px rgba(0,0,0,0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* ============================================
+           BASE & LAYOUT STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        /* ============================================
+           CARD STYLES
+           ============================================ */
+        .card-wrapper {
+            position: relative;
+            width: var(--card-width);
+            height: var(--card-height);
+            flex-shrink: 0;
+        }
+
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .card-flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+
+        .card-flipper.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        /* --- Front Card Base --- */
+        .card-front {
+            display: flex;
+            flex-direction: column;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* --- Front Card: Decorative Template --- */
+        .card-front-decorative {
+            background: var(--light-gradient);
+        }
+        .card-front-decorative .decorative-circles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .card-front-decorative .circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+        .card-front-decorative .circle-1 { width: 80px; height: 80px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); top: 20px; left: 20px; }
+        .card-front-decorative .circle-2 { width: 60px; height: 60px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); bottom: 150px; right: 30px; }
+        .card-front-decorative .circle-3 { width: 40px; height: 40px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); top: 100px; right: 100px; }
+        .card-front-decorative .green-side-left, .card-front-decorative .green-side-right {
+            position: absolute;
+            top: 70%;
+            width: 63%;
+            height: 60px;
+            background: var(--success-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-lt;
+            text-orientation: mixed;
+            z-index: 1;
+            transform-origin: center center;
+        }
+        .card-front-decorative .green-side-left { left: -24%; transform: translateY(-50%) rotate(-90deg); border-radius: 0 0 50px 0; }
+        .card-front-decorative .green-side-right { right: -24%; transform: translateY(-50%) rotate(90deg); border-radius: 0 0 0 50px; }
+        .card-front-decorative .dept-text { color: white; font-weight: bold; font-size: 16px; padding: 10px 0; }
+
+        /* --- Front Card: Plain Template --- */
+        .card-front-plain::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+        
+        /* PERUBAHAN DIMULAI DI SINI */
+        .card-front-plain .card-header {
+            background: transparent;
+            z-index: 2;
+            padding-top: 30px;
+        }
+        .card-front-plain .card-footer {
+            background: transparent;
+            z-index: 2;
+            padding-bottom: 30px;
+        }
+        .card-front-plain .company-name {
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+        }
+        .card-front-plain .name-text, .card-front-plain .nip-text {
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+        }
+        .card-front-plain .logo-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        /* PERUBAHAN SELESAI DI SINI */
+
+        .card-front-plain .dept-text { display: none; }
+
+        /* --- Shared Front Card Elements --- */
+        .card-header {
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        .logo-container {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+        }
+        .logo-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .logo-placeholder { font-size: 24px; color: #adb5bd; }
+        .company-name { font-size: 18px; font-weight: bold; color: #333; }
+        .card-image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            position: relative;
+        }
+        .person-image {
+            width: 300px;
+            height: 350px;
+            background: url('https://picsum.photos/seed/woman-professional/200/300.jpg') center/cover;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .person-image img { width: 100%; height: 100%; object-fit: cover; }
+        .card-footer {
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .name-text { font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .nip-text { font-size: 16px; margin-top: 5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); display: none; }
+        .nip-text.show { display: block; }
+
+        /* --- Back Card --- */
+        .card-back {
+            background: var(--primary-gradient);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            transform: rotateY(180deg);
+            color: white;
+            background-size: cover;
+            background-position: center;
+        }
+        .card-back::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+        .card-back > * { position: relative; z-index: 2; }
+        .back-title { font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 30px; }
+        .back-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; margin-bottom: 30px; }
+        .info-item { font-size: 18px; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .qr-container { display: flex; justify-content: center; align-items: center; margin-top: auto; }
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            padding: 15px;
+            position: relative;
+        }
+        .qr-code canvas, .qr-code img { display: block; width: 100% !important; height: 100% !important; }
+        .qr-info {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .qr-code:hover .qr-info { opacity: 1; }
+
+        /* ============================================
+           CONTROL PANEL STYLES
+           ============================================ */
+        .control-panel {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            height: var(--card-height);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .control-panel::-webkit-scrollbar { width: 8px; }
+        .control-panel::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .control-panel::-webkit-scrollbar-thumb { background: var(--primary-gradient); border-radius: 10px; }
+
+        .panel-title { font-size: 24px; font-weight: bold; margin-bottom: 25px; color: #333; text-align: center; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; }
+        .panel-section { margin-bottom: 25px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #667eea; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .input-group { margin-bottom: 18px; }
+        .input-label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 13px; }
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .color-input { height: 45px; cursor: pointer; }
+
+        /* --- Template Selector --- */
+        .template-selector {
+            display: flex;
+            gap: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        .template-option {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 13px;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+        .template-option input[type="radio"] { display: none; }
+        .template-option input[type="radio"]:checked + span {
+            color: white;
+        }
+        .template-option:has(input:checked) {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        .template-option:not(:has(input:checked)):hover {
+            background-color: #f0f0f0;
+        }
+
+        /* --- Background Control Styles --- */
+        .bg-control-group {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .bg-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .bg-type-selector label {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 13px;
+        }
+        .bg-type-selector input[type="radio"] { display: none; }
+        .bg-type-selector input[type="radio"]:checked + label {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: #667eea;
+        }
+        .bg-option-content { display: none; }
+        .bg-option-content.active { display: block; }
+
+        /* --- File Upload --- */
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload-input { position: absolute; left: -9999px; }
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+            color: #495057;
+        }
+        .file-upload-label:hover { background: #e9ecef; border-color: #667eea; }
+        .file-upload-label.has-file { background: #d4edda; border-color: #28a745; color: #155724; }
+        .file-upload-label.photo-upload { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .file-upload-label.photo-upload.has-file { background: #d1ecf1; border-color: #17a2b8; color: #0c5460; }
+        .file-name { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: var(--primary-gradient); color: white; }
+        .btn-primary:hover { box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-success { background: var(--success-gradient); color: white; }
+        .btn-success:hover { box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4); }
+        .btn-warning { background: var(--danger-gradient); color: white; }
+        .btn-warning:hover { box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4); }
+        .btn-small { padding: 6px 10px; font-size: 12px; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: auto; padding-top: 20px; }
+        .flip-btn { width: 100%; margin-top: 15px; background: var(--success-gradient); }
+        .action-section { margin-top: 20px; padding-top: 20px; border-top: 2px solid #f0f0f0; }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .action-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        .action-btn:hover::before { left: 100%; }
+        .download-front { background: var(--primary-gradient); }
+        .download-back { background: var(--danger-gradient); }
+        .download-both, .print-btn { grid-column: 1 / -1; }
+        .download-both { background: var(--success-gradient); }
+        .print-btn { background: var(--warning-gradient); }
+
+        /* ============================================
+           UTILITY & EFFECT STYLES
+           ============================================ */
+        .flip-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            z-index: 10;
+            transition: var(--transition);
+        }
+        .card-flipper.flipped .flip-indicator {
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+        }
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .keyboard-hint:hover { opacity: 1; }
+
+        /* --- Loading Overlay --- */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: #333; font-size: 16px; font-weight: 600; }
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            margin: 15px auto 0;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* --- Print Styles --- */
+        @media print {
+            body { background: white; padding: 0; }
+            .container { display: block; max-width: none; gap: 0; padding: 20px; }
+            .control-panel, .keyboard-hint, .flip-indicator { display: none !important; }
+            .card-wrapper {
+                width: var(--card-width);
+                height: var(--card-height);
+                margin: 0 auto 40px;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .card-flipper { transform: none !important; }
+            .card-face { position: relative; backface-visibility: visible; transform: none !important; }
+            .card-back { transform: none !important; }
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; align-items: center; }
+            .card-wrapper, .control-panel {
+                width: 350px;
+                height: 525px;
+            }
+            .control-panel { max-width: 350px; }
+            .keyboard-hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Card Section -->
+        <div class="card-wrapper">
+            <div class="flip-indicator" id="flipIndicator">Depan</div>
+            <div class="card-container">
+                <div class="card-flipper" id="cardFlipper">
+                    <!-- Front Side -->
+                    <div class="card-face card-front card-front-decorative" id="cardFront">
+                        <!-- Decorative Elements -->
+                        <div class="decorative-circles">
+                            <div class="circle circle-1"></div>
+                            <div class="circle circle-2"></div>
+                            <div class="circle circle-3"></div>
+                        </div>
+                        <div class="green-side-left"><div class="dept-text" id="deptTextLeft">OPERATOR</div></div>
+                        <div class="green-side-right"><div class="dept-text" id="deptTextRight">OPERATOR</div></div>
+                        
+                        <div class="card-header">
+                            <div class="logo-container" id="logoContainer">
+                                <div class="logo-placeholder" id="logoPlaceholder">🏢</div>
+                                <img class="logo-image" id="logoImage" style="display: none;" alt="Logo">
+                            </div>
+                            <div class="company-name" id="companyName">UPT SD NEGERI 067953</div>
+                        </div>
+                        
+                        <div class="card-image-container">
+                            <div class="person-image" id="personImage">
+                                <img id="personImg" src="https://picsum.photos/seed/woman-professional/200/300.jpg" alt="Person" style="display: block;">
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <div class="name-text" id="nameText">NAMA KAMU</div>
+                            <div class="nip-text" id="nipText">NIP: 1234567890</div>
+                        </div>
+                    </div>
+                    <!-- Back Side -->
+                    <div class="card-face card-back" id="cardBack">
+                        <div class="back-title">CONTACT INFO</div>
+                        <div class="back-content">
+                            <div class="back-info">
+                                <div class="info-item"><span id="backNameDisplay">Nama Kamu</span></div>
+                                <div class="info-item"><span id="backNipDisplay">NIP</span></div>
+                                <div class="info-item"><span id="backEmailDisplay">email@gmail.com</span></div>
+                                <div class="info-item"><span id="backPhoneDisplay">+62 812 - 3456 - 7890</span></div>
+                                <div class="info-item"><span id="backPositionDisplay">OPERATOR</span></div>
+                                <div class="info-item"><span id="backOfficeDisplay">Medan</span></div>
+                            </div>
+                            <div class="qr-container">
+                                <div class="qr-code" id="qrcode"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel Section -->
+        <div class="control-panel">
+            <h2 class="panel-title">📝 Panel Kontrol</h2>
+            <form id="controlForm">
+                <!-- Template Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>🎨</span> Template Kartu</div>
+                    <div class="template-selector">
+                        <div class="template-option">
+                            <input type="radio" id="templateDecorative" name="cardTemplate" value="decorative" checked>
+                            <label for="templateDecorative"><span>✨ Dekoratif</span></label>
+                        </div>
+                        <div class="template-option">
+                            <input type="radio" id="templatePlain" name="cardTemplate" value="plain">
+                            <label for="templatePlain"><span>🖼️ Polos</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Branding Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>🏢</span> Branding</div>
+                    <div class="input-group">
+                        <label class="input-label">Logo Perusahaan</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="logoInput" class="file-upload-input" accept="image/*">
+                            <label for="logoInput" class="file-upload-label" id="logoLabel">
+                                <span>📁</span><span class="file-name">Pilih file logo...</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Nama Perusahaan</label>
+                        <input type="text" class="input-field" id="companyInput" value="UPT SD NEGERI 067953">
+                    </div>
+                </div>
+
+                <!-- Background Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>🖼️</span> Latar Belakang</div>
+                    
+                    <!-- Front Background Control -->
+                    <div class="bg-control-group">
+                        <div class="input-label">Background Depan</div>
+                        <div class="bg-type-selector">
+                            <input type="radio" id="frontBgColor" name="frontBgType" value="color" checked>
+                            <label for="frontBgColor">Warna</label>
+                            <input type="radio" id="frontBgImage" name="frontBgType" value="image">
+                            <label for="frontBgImage">Gambar</label>
+                        </div>
+                        <div class="bg-option-content active" id="frontBgColorContent">
+                            <input type="color" class="input-field color-input" id="frontBgColorInput" value="#f5f7fa">
+                        </div>
+                        <div class="bg-option-content" id="frontBgImageContent">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="frontBgInput" class="file-upload-input" accept="image/*">
+                                <label for="frontBgInput" class="file-upload-label" id="frontBgLabel">
+                                    <span>🖼️</span><span class="file-name">Pilih gambar...</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Back Background Control -->
+                    <div class="bg-control-group">
+                        <div class="input-label">Background Belakang</div>
+                        <div class="bg-type-selector">
+                            <input type="radio" id="backBgColor" name="backBgType" value="color" checked>
+                            <label for="backBgColor">Warna</label>
+                            <input type="radio" id="backBgImage" name="backBgType" value="image">
+                            <label for="backBgImage">Gambar</label>
+                        </div>
+                        <div class="bg-option-content active" id="backBgColorContent">
+                            <input type="color" class="input-field color-input" id="backBgColorInput" value="#667eea">
+                        </div>
+                        <div class="bg-option-content" id="backBgImageContent">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="backBgInput" class="file-upload-input" accept="image/*">
+                                <label for="backBgInput" class="file-upload-label" id="backBgLabel">
+                                    <span>🖼️</span><span class="file-name">Pilih gambar...</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Info Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>👤</span> Info Personal</div>
+                    <div class="input-group">
+                        <label class="input-label">Foto Person</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="photoInput" class="file-upload-input" accept="image/*">
+                            <label for="photoInput" class="file-upload-label photo-upload" id="photoLabel">
+                                <span>📷</span><span class="file-name">Pilih foto person...</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="input-group"><label class="input-label">Nama Lengkap</label><input type="text" class="input-field" id="nameInput" value="NAMA KAMU"></div>
+                    <div class="input-group"><label class="input-label">NIP</label><input type="text" class="input-field" id="nipInput" value="1234567890"></div>
+                    <div class="input-group"><label class="input-label">Jabatan</label><input type="text" class="input-field" id="positionInput" value="OPERATOR"></div>
+                </div>
+
+                <!-- Contact Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>📞</span> Kontak</div>
+                    <div class="input-group"><label class="input-label">Email</label><input type="email" class="input-field" id="emailInput" value="email@gmail.com"></div>
+                    <div class="input-group"><label class="input-label">Telepon</label><input type="tel" class="input-field" id="phoneInput" value="+62 812-3456-7890"></div>
+                    <div class="input-group"><label class="input-label">Kantor</label><input type="text" class="input-field" id="officeInput" value="Medan"></div>
+                </div>
+
+                <!-- Design Section -->
+                <div class="panel-section">
+                    <div class="section-title"><span>🎨</span> Desain</div>
+                    <div class="input-group">
+                        <label class="input-label">Warna Footer</label>
+                        <input type="color" class="input-field color-input" id="headerColorInput" value="#ff6b6b">
+                    </div>
+                </div>
+            </form>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="updateBtn">🔄 Update</button>
+                <button type="button" class="btn btn-secondary" id="resetBtn">🔄 Reset</button>
+            </div>
+            <button type="button" class="btn btn-success flip-btn" id="flipBtn">🔄 Balik Kartu</button>
+
+            <!-- Action Section -->
+            <div class="action-section">
+                <div class="section-title"><span>⚡</span> Aksi Cepat</div>
+                <div class="action-grid">
+                    <button class="action-btn download-front" data-side="front">⬇️ Depan</button>
+                    <button class="action-btn download-back" data-side="back">⬇️ Belakang</button>
+                    <button class="action-btn download-both" data-side="both">⬇️ Kedua Sisi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">Memproses...</div>
+            <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+    </div>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint" id="keyboardHint">💡 Tekan <strong>F</strong> untuk balik kartu</div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        class IDCardMaker {
+            constructor() {
+                // State Management
+                this.state = {
+                    logoUrl: null,
+                    photoUrl: null,
+                    isFlipped: false,
+                    template: 'decorative', // 'decorative' or 'plain'
+                    frontBackground: { type: 'color', value: '#f5f7fa' },
+                    backBackground: { type: 'color', value: '#667eea' },
+                };
+
+                // Cache DOM Elements
+                this.elements = {
+                    // Card
+                    cardFlipper: document.getElementById('cardFlipper'),
+                    flipIndicator: document.getElementById('flipIndicator'),
+                    cardFront: document.getElementById('cardFront'),
+                    cardBack: document.getElementById('cardBack'),
+                    // Front Card Elements
+                    logoImage: document.getElementById('logoImage'),
+                    logoPlaceholder: document.getElementById('logoPlaceholder'),
+                    companyName: document.getElementById('companyName'),
+                    personImg: document.getElementById('personImg'),
+                    nameText: document.getElementById('nameText'),
+                    nipText: document.getElementById('nipText'),
+                    deptTextLeft: document.getElementById('deptTextLeft'),
+                    deptTextRight: document.getElementById('deptTextRight'),
+                    // Back Card Elements
+                    backNameDisplay: document.getElementById('backNameDisplay'),
+                    backNipDisplay: document.getElementById('backNipDisplay'),
+                    backEmailDisplay: document.getElementById('backEmailDisplay'),
+                    backPhoneDisplay: document.getElementById('backPhoneDisplay'),
+                    backPositionDisplay: document.getElementById('backPositionDisplay'),
+                    backOfficeDisplay: document.getElementById('backOfficeDisplay'),
+                    // QR Code
+                    qrcode: document.getElementById('qrcode'),
+                    // Inputs
+                    form: document.getElementById('controlForm'),
+                    logoInput: document.getElementById('logoInput'),
+                    photoInput: document.getElementById('photoInput'),
+                    // Background Inputs
+                    frontBgColorInput: document.getElementById('frontBgColorInput'),
+                    frontBgInput: document.getElementById('frontBgInput'),
+                    backBgColorInput: document.getElementById('backBgColorInput'),
+                    backBgInput: document.getElementById('backBgInput'),
+                    // Buttons
+                    updateBtn: document.getElementById('updateBtn'),
+                    resetBtn: document.getElementById('resetBtn'),
+                    flipBtn: document.getElementById('flipBtn'),
+                    downloadBtns: document.querySelectorAll('.action-btn'),
+                    // UI
+                    loadingOverlay: document.getElementById('loadingOverlay'),
+                    loadingText: document.getElementById('loadingText'),
+                    progressBar: document.getElementById('progressBar'),
+                    progressFill: document.getElementById('progressFill'),
+                    keyboardHint: document.getElementById('keyboardHint'),
+                };
+
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.updateCard(); // Initial render
+                this.showNotification('Selamat datang! Pilih template dan mulai kustomisasi.');
+            }
+
+            bindEvents() {
+                // Form inputs (live update)
+                this.elements.form.addEventListener('input', (e) => this.handleInputChange(e));
+                
+                // Template selector
+                document.querySelectorAll('input[name="cardTemplate"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.updateTemplate());
+                });
+
+                // File uploads
+                this.elements.logoInput.addEventListener('change', (e) => this.handleFileUpload(e, 'logo'));
+                this.elements.photoInput.addEventListener('change', (e) => this.handleFileUpload(e, 'photo'));
+                this.elements.frontBgInput.addEventListener('change', (e) => this.handleFileUpload(e, 'frontBg'));
+                this.elements.backBgInput.addEventListener('change', (e) => this.handleFileUpload(e, 'backBg'));
+
+                // Background type selectors
+                document.querySelectorAll('input[name="frontBgType"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.toggleBackgroundOption('front'));
+                });
+                document.querySelectorAll('input[name="backBgType"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.toggleBackgroundOption('back'));
+                });
+
+                // Buttons
+                this.elements.updateBtn.addEventListener('click', () => this.updateCard());
+                this.elements.resetBtn.addEventListener('click', () => this.resetCard());
+                this.elements.flipBtn.addEventListener('click', () => this.flipCard());
+                this.elements.downloadBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.downloadCard(btn.dataset.side));
+                });
+
+                // Keyboard shortcut
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            }
+
+            updateTemplate() {
+                const selectedTemplate = document.querySelector('input[name="cardTemplate"]:checked').value;
+                this.state.template = selectedTemplate;
+                this.updateCard();
+            }
+
+            handleInputChange(e) {
+                if (e.target.classList.contains('input-field')) {
+                    if (e.target.id === 'frontBgColorInput') {
+                        this.state.frontBackground = { type: 'color', value: e.target.value };
+                    } else if (e.target.id === 'backBgColorInput') {
+                        this.state.backBackground = { type: 'color', value: e.target.value };
+                    }
+                    this.updateCard();
+                }
+            }
+
+            handleFileUpload(e, type) {
+                const file = e.target.files[0];
+                let label, fileNameSpan;
+
+                switch(type) {
+                    case 'logo':
+                        label = document.getElementById('logoLabel');
+                        fileNameSpan = label.querySelector('.file-name');
+                        break;
+                    case 'photo':
+                        label = document.getElementById('photoLabel');
+                        fileNameSpan = label.querySelector('.file-name');
+                        break;
+                    case 'frontBg':
+                        label = document.getElementById('frontBgLabel');
+                        fileNameSpan = label.querySelector('.file-name');
+                        break;
+                    case 'backBg':
+                        label = document.getElementById('backBgLabel');
+                        fileNameSpan = label.querySelector('.file-name');
+                        break;
+                }
+
+                if (!file) {
+                    fileNameSpan.textContent = `Pilih file ${type}...`;
+                    label.classList.remove('has-file');
+                    if (type === 'logo') this.state.logoUrl = null;
+                    if (type === 'photo') this.state.photoUrl = null;
+                    if (type === 'frontBg') this.state.frontBackground = { type: 'color', value: this.elements.frontBgColorInput.value };
+                    if (type === 'backBg') this.state.backBackground = { type: 'color', value: this.elements.backBgColorInput.value };
+                    this.updateCard();
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    this.showNotification('Harap pilih file gambar!', 'error');
+                    e.target.value = '';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showNotification('Ukuran file maksimal 5MB!', 'error');
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const url = event.target.result;
+                    if (type === 'logo') {
+                        this.state.logoUrl = url;
+                        this.displayLogo(url);
+                    } else if (type === 'photo') {
+                        this.state.photoUrl = url;
+                        this.displayPhoto(url);
+                    } else if (type === 'frontBg') {
+                        this.state.frontBackground = { type: 'image', value: url };
+                    } else if (type === 'backBg') {
+                        this.state.backBackground = { type: 'image', value: url };
+                    }
+                    fileNameSpan.textContent = file.name;
+                    label.classList.add('has-file');
+                    this.showNotification(`Background ${type === 'frontBg' ? 'depan' : 'belakang'} berhasil diupload!`);
+                    this.updateCard();
+                };
+                reader.readAsDataURL(file);
+            }
+
+            toggleBackgroundOption(side) {
+                const type = document.querySelector(`input[name="${side}BgType"]:checked`).value;
+                const colorContent = document.getElementById(`${side}BgColorContent`);
+                const imageContent = document.getElementById(`${side}BgImageContent`);
+
+                if (type === 'color') {
+                    colorContent.classList.add('active');
+                    imageContent.classList.remove('active');
+                    if (side === 'front') {
+                        this.state.frontBackground = { type: 'color', value: this.elements.frontBgColorInput.value };
+                    } else {
+                        this.state.backBackground = { type: 'color', value: this.elements.backBgColorInput.value };
+                    }
+                } else {
+                    colorContent.classList.remove('active');
+                    imageContent.classList.add('active');
+                }
+                this.updateCard();
+            }
+
+            displayLogo(url) {
+                this.elements.logoImage.style.display = url ? 'block' : 'none';
+                this.elements.logoPlaceholder.style.display = url ? 'none' : 'block';
+                if (url) this.elements.logoImage.src = url;
+            }
+
+            displayPhoto(url) {
+                this.elements.personImg.src = url || 'https://picsum.photos/seed/woman-professional/200/300.jpg';
+            }
+
+            updateCard() {
+                const data = this.getFormData();
+                
+                // Update Template Classes
+                this.elements.cardFront.className = `card-face card-front card-front-${this.state.template}`;
+                
+                // Update Backgrounds
+                if (this.state.frontBackground.type === 'image') {
+                    this.elements.cardFront.style.backgroundImage = `url(${this.state.frontBackground.value})`;
+                } else {
+                    this.elements.cardFront.style.backgroundImage = 'none';
+                    this.elements.cardFront.style.backgroundColor = this.state.frontBackground.value;
+                }
+
+                if (this.state.backBackground.type === 'image') {
+                    this.elements.cardBack.style.backgroundImage = `url(${this.state.backBackground.value})`;
+                } else {
+                    this.elements.cardBack.style.backgroundImage = 'none';
+                    this.elements.cardBack.style.backgroundColor = this.state.backBackground.value;
+                }
+                
+                // Update Front Card
+                this.elements.companyName.textContent = data.company;
+                this.elements.nameText.textContent = data.name;
+                this.elements.deptTextLeft.textContent = data.position;
+                this.elements.deptTextRight.textContent = data.position;
+                
+                // Handle NIP display
+                if (data.nip) {
+                    this.elements.nipText.textContent = `NIP: ${data.nip}`;
+                    this.elements.nipText.classList.add('show');
+                } else {
+                    this.elements.nipText.classList.remove('show');
+                }
+
+                // Update Back Card
+                this.elements.backNameDisplay.textContent = data.name;
+                this.elements.backNipDisplay.textContent = data.nip ? `NIP ${data.nip}` : '';
+                this.elements.backNipDisplay.style.display = data.nip ? 'block' : 'none';
+                this.elements.backEmailDisplay.textContent = data.email;
+                this.elements.backPhoneDisplay.textContent = data.phone.replace(/-/g, ' - ');
+                this.elements.backPositionDisplay.textContent = data.position;
+                this.elements.backOfficeDisplay.textContent = data.office;
+
+                // Update Footer Color (only for decorative template)
+                if (this.state.template === 'decorative') {
+                    const footer = document.querySelector('.card-footer');
+                    footer.style.background = `linear-gradient(135deg, ${data.headerColor} 0%, ${this.adjustColor(data.headerColor, 20)} 100%)`;
+                } else {
+                    // Reset footer style for plain template
+                    const footer = document.querySelector('.card-footer');
+                    footer.style.background = ''; // Use CSS defined style
+                }
+                
+                // Generate QR Code
+                this.generateQRCode(data);
+            }
+
+            getFormData() {
+                return {
+                    company: document.getElementById('companyInput').value,
+                    name: document.getElementById('nameInput').value,
+                    nip: document.getElementById('nipInput').value,
+                    position: document.getElementById('positionInput').value,
+                    email: document.getElementById('emailInput').value,
+                    phone: document.getElementById('phoneInput').value,
+                    office: document.getElementById('officeInput').value,
+                    headerColor: document.getElementById('headerColorInput').value,
+                };
+            }
+
+            generateQRCode(data) {
+                const vcardData = `BEGIN:VCARD\nVERSION:3.0\nFN:${data.name}\nN:;${data.name};;;\nORG:${data.company}\nTITLE:${data.position}\nTEL:${data.phone}\nEMAIL:${data.email}\nADR:;;${data.office};;;;\nEND:VCARD`;
+                
+                this.elements.qrcode.innerHTML = '';
+                new QRCode(this.elements.qrcode, {
+                    text: vcardData,
+                    width: 170,
+                    height: 170,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+
+            flipCard() {
+                this.state.isFlipped = !this.state.isFlipped;
+                this.elements.cardFlipper.classList.toggle('flipped');
+                this.elements.flipIndicator.textContent = this.state.isFlipped ? 'Belakang' : 'Depan';
+            }
+
+            resetCard() {
+                this.elements.form.reset();
+                this.state.logoUrl = null;
+                this.state.photoUrl = null;
+                this.state.template = 'decorative';
+                this.state.frontBackground = { type: 'color', value: '#f5f7fa' };
+                this.state.backBackground = { type: 'color', value: '#667eea' };
+                
+                // Reset UI
+                this.displayLogo(null);
+                this.displayPhoto(null);
+                document.getElementById('logoLabel').querySelector('.file-name').textContent = 'Pilih file logo...';
+                document.getElementById('photoLabel').querySelector('.file-name').textContent = 'Pilih foto person...';
+                document.getElementById('frontBgLabel').querySelector('.file-name').textContent = 'Pilih gambar...';
+                document.getElementById('backBgLabel').querySelector('.file-name').textContent = 'Pilih gambar...';
+                document.querySelectorAll('.file-upload-label').forEach(label => label.classList.remove('has-file'));
+                
+                // Reset background controls
+                document.querySelector('input[name="frontBgType"][value="color"]').checked = true;
+                document.querySelector('input[name="backBgType"][value="color"]').checked = true;
+                this.toggleBackgroundOption('front');
+                this.toggleBackgroundOption('back');
+
+                // Reset template control
+                document.querySelector('input[name="cardTemplate"][value="decorative"]').checked = true;
+                
+                this.updateCard();
+                this.showNotification('Kartu direset ke default');
+            }
+
+            // ============================================
+            // DOWNLOAD & CANVAS LOGIC
+            // ============================================
+            async downloadCard(side) {
+                const sideText = side === 'front' ? 'Depan' : side === 'back' ? 'Belakang' : 'Kedua Sisi';
+                this.showLoading(`Mengunduh sisi ${sideText}...`, true);
+                this.updateProgress(5);
+
+                try {
+                    const tempContainer = this._createTempContainer(side);
+                    document.body.appendChild(tempContainer);
+                    this.updateProgress(30);
+
+                    const canvas = await html2canvas(tempContainer, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                    });
+                    this.updateProgress(80);
+
+                    document.body.removeChild(tempContainer);
+                    this._triggerDownload(canvas, this._generateFileName(side));
+                    this.updateProgress(100);
+
+                    setTimeout(() => {
+                        this.hideLoading();
+                        this.showNotification(`✅ Sisi ${sideText} berhasil diunduh!`);
+                    }, 300);
+
+                } catch (error) {
+                    console.error('Download error:', error);
+                    this.hideLoading();
+                    this.showNotification(`❌ Gagal mengunduh: ${error.message}`, 'error');
+                }
+            }
+
+            _createTempContainer(side) {
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                container.style.background = 'white';
+
+                if (side === 'both') {
+                    container.style.display = 'flex';
+                    container.style.gap = '20px';
+                    container.style.padding = '20px';
+                    container.style.width = '840px';
+                    container.style.height = '640px';
+                    container.appendChild(this._cloneCardSide('front'));
+                    container.appendChild(this._cloneCardSide('back'));
+                } else {
+                    container.style.padding = '20px';
+                    container.style.width = '440px';
+                    container.style.height = '640px';
+                    container.style.display = 'flex';
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'center';
+                    container.appendChild(this._cloneCardSide(side));
+                }
+                return container;
+            }
+
+            _cloneCardSide(side) {
+                const originalSide = document.getElementById(`card${side.charAt(0).toUpperCase() + side.slice(1)}`);
+                const clone = originalSide.cloneNode(true);
+                clone.style.transform = 'none';
+                clone.style.backfaceVisibility = 'visible';
+                clone.style.position = 'relative';
+                this._addHairlines(clone);
+                return clone;
+            }
+
+            _addHairlines(element) {
+                const border = document.createElement('div');
+                border.style.cssText = 'position:absolute; top:0; left:0; right:0; bottom:0; border: 1px solid #000; border-radius: 20px; pointer-events:none;z-index:1000;';
+                element.appendChild(border);
+            }
+
+            _triggerDownload(canvas, filename) {
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                }, 'image/png');
+            }
+
+            _generateFileName(side) {
+                const name = document.getElementById('nameInput').value || 'kartu';
+                const cleanName = name.replace(/\s+/g, '_');
+                const suffix = side === 'front' ? '_Depan' : side === 'back' ? '_Belakang' : '_Kedua_Sisi';
+                return `${cleanName}_ID_Card${suffix}.png`;
+            }
+
+            // ============================================
+            // UTILITY FUNCTIONS
+            // ============================================
+            handleKeyboard(e) {
+                const activeElement = document.activeElement;
+                const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+                
+                if ((e.key === 'f' || e.key === 'F') && !isInputFocused) {
+                    e.preventDefault();
+                    this.flipCard();
+                }
+            }
+
+            showLoading(text, showProgress = false) {
+                this.elements.loadingText.textContent = text;
+                this.elements.progressBar.style.display = showProgress ? 'block' : 'none';
+                this.elements.progressFill.style.width = '0%';
+                this.elements.loadingOverlay.style.display = 'flex';
+            }
+
+            updateProgress(percent) {
+                this.elements.progressFill.style.width = `${percent}%`;
+            }
+
+            hideLoading() {
+                this.elements.loadingOverlay.style.display = 'none';
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; background: ${type === 'error' ? 'var(--danger-gradient)' : 'var(--primary-gradient)'};
+                    color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+                    z-index: 10000; animation: slideIn 0.3s ease;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            adjustColor(color, amount) {
+                const num = parseInt(color.replace('#', ''), 16);
+                const r = Math.min(255, ((num >> 16) & 255) + amount);
+                const g = Math.min(255, ((num >> 8) & 255) + amount);
+                const b = Math.min(255, (num & 255) + amount);
+                return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+            }
+        }
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the application
+        new IDCardMaker();
+    });
+    </script>
+</body>
+</html>
